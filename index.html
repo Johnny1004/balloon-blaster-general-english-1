@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Balloon Blaster</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101e32;color:white;font-family:Arial,sans-serif}button{font:inherit;cursor:pointer;border:0;border-radius:12px;background:#263c59;color:white;padding:12px 18px;touch-action:manipulation}button:hover{background:#355578}button:focus-visible{outline:3px solid #ffd35b;outline-offset:3px}.shell{max-width:1100px;margin:auto;padding:12px}.top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.top h1{font-size:clamp(18px,3vw,28px);margin:0}.tools{display:flex;gap:6px}.tools button{padding:9px 12px}.stage{position:relative;border-radius:18px;overflow:hidden;box-shadow:0 12px 40px #0006;background:#45a9ec}canvas{display:block;width:100%;aspect-ratio:16/9;touch-action:none}.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#081e39d9;padding:14px;overflow:auto}.overlay[hidden]{display:none}.panel{background:#132944;border:1px solid #ffffff30;border-radius:20px;padding:22px;text-align:center;width:min(620px,100%);box-shadow:0 10px 50px #0005}.panel h2{margin:0 0 10px;color:#ffdc75;font-size:28px}.panel p{line-height:1.5;margin:10px 0}.choices{display:flex;gap:12px;justify-content:center;margin:16px 0}.pick{flex:1;max-width:150px;border:3px solid transparent;padding:8px}.pick[aria-pressed=true]{border-color:#ffd35b;background:#365875}.pick img{width:100%;height:90px;object-fit:contain;display:block;margin-bottom:6px}.primary{background:#ffcc52;color:#16253b;font-weight:bold}.primary:hover{background:#ffe080}.controls{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:12px;padding:0 8px}.pad{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(2,48px);gap:5px}.pad button{font-size:23px;padding:0;touch-action:none;user-select:none}.up{grid-column:2}.left{grid-column:1;grid-row:2}.down{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}.fire{background:#bd2933;font-weight:bold;width:120px;height:80px;font-size:22px;touch-action:none;user-select:none}.fire:hover{background:#db3942}.hint{font-size:13px;color:#b9cce5;text-align:center;flex:1}.notice{font-size:12px;color:#c8d7ec;text-align:center;margin:12px 0} @media(max-width:600px){.shell{padding:6px}.panel{padding:14px}.panel h2{font-size:21px}.panel p{font-size:13px}.pick img{height:55px}.choices{margin:8px 0;gap:5px}.pick{font-size:12px}.hint{display:none}.stage:has(#welcome:not([hidden])){min-height:410px}.stage:has(#welcome:not([hidden])) canvas{min-height:410px}.tools button{font-size:12px}.fire{height:70px;width:100px}} @media(max-height:500px) and (orientation:landscape){.shell{max-width:780px}.overlay{align-items:flex-start}.panel{padding:12px}.pick img{height:45px}.choices{margin:7px 0}.panel p{font-size:12px;margin:4px}.top{margin-bottom:5px}.controls{margin-top:6px}.pad{grid-template-rows:repeat(2,35px)}.fire{height:65px}}
+
+/* Fit the entire 16:9 playing area inside the available browser viewport. */
+html,body{height:100%;overflow:hidden}
+.shell{height:100vh;height:100dvh;max-width:1100px;display:flex;flex-direction:column;align-items:center;padding:10px;gap:8px;overflow:hidden}
+.top{width:100%;flex:none;margin:0;min-height:38px}
+.stage{flex:none;min-height:0!important;max-width:100%;margin:auto 0}
+canvas{width:100%;height:100%;aspect-ratio:16/9;min-height:0!important}
+.controls{display:none;flex:none;width:100%;margin:0;padding:0 8px}
+.notice{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.overlay{overscroll-behavior:contain}
+@media(hover:none) and (pointer:coarse){.controls{display:flex}.hint{display:none}.shell{padding:6px;padding-bottom:max(6px,env(safe-area-inset-bottom))}}
+@media(max-height:500px) and (orientation:landscape){.shell{max-width:1100px}.top{min-height:32px}.top h1{font-size:18px}.tools button{padding:6px 10px}.controls{margin:0}.pad{grid-template-rows:repeat(2,30px);grid-template-columns:repeat(3,44px)}.fire{height:60px}.panel h2{font-size:20px}}
+</style></head><body><main class="shell"><header class="top"><h1>🎈 Balloon Blaster</h1><div class="tools"><button id="mute" aria-pressed="false">Sound: On</button><button id="pause" disabled>Pause</button></div></header><div class="stage"><canvas id="game" width="960" height="540" aria-label="Balloon Blaster game. Use arrow keys to aim and Spacebar to shoot."></canvas>
+<section class="overlay" id="welcome"><div class="panel"><h2>Aim. Shoot. Learn!</h2><p>Shoot the balloon with the <strong>correct answer</strong> to earn <strong>100 points</strong>.<br>Hit a wrong answer and lose a life. You have <strong>3 lives</strong>!</p><p><strong>Computer:</strong> Arrow keys to aim • Spacebar to fire<br><strong>Phone / tablet:</strong> Arrow buttons to aim • FIRE to shoot<br>You can also drag the crosshair on the game area.</p><strong>Choose your shooter</strong><div class="choices"><button class="pick" data-shooter="0" aria-pressed="true"><img src="player-1.png" alt="Shooter 1" onerror="this.style.display='none'">Shooter 1</button><button class="pick" data-shooter="1" aria-pressed="false"><img src="player-2.png" alt="Shooter 2" onerror="this.style.display='none'">Shooter 2</button><button class="pick" data-shooter="2" aria-pressed="false"><img src="player-3.png" alt="Shooter 3" onerror="this.style.display='none'">Shooter 3</button></div><button class="primary" id="start">START GAME</button></div></section>
+<section class="overlay" id="ending" hidden><div class="panel"><h2 id="endTitle"></h2><p id="endText"></p><button class="primary" id="again">PLAY AGAIN</button><button id="choose">CHOOSE SHOOTER</button></div></section>
+<section class="overlay" id="paused" hidden><div class="panel"><h2>Game paused</h2><p>Ready when you are.</p><button class="primary" id="resume">RESUME</button></div></section></div>
+<div class="controls"><div class="pad" aria-label="Aim controls"><button class="up" data-dir="ArrowUp" aria-label="Aim up">▲</button><button class="left" data-dir="ArrowLeft" aria-label="Aim left">◀</button><button class="down" data-dir="ArrowDown" aria-label="Aim down">▼</button><button class="right" data-dir="ArrowRight" aria-label="Aim right">▶</button></div><div class="hint">Aim at any part of a balloon, then fire.<br>Arrow keys + Spacebar • Touch arrows + FIRE</div><button class="fire" id="fire">FIRE</button></div><p class="notice" id="status" role="status" aria-live="polite">Choose a shooter to begin.</p></main>
+<script>
+'use strict';
+// QUESTION BANK: add or replace entries here. Exactly one correct choice per question.
+// correct is the index of the correct option (0 = first, 1 = second, 2 = third).
+const QUESTIONS = [
+  {
+    "sentence": "Martina _____ come to school yesterday.",
+    "options": [
+      "doesn't",
+      "didn't",
+      "not came"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "I've lived in this neighborhood _____ 2020.",
+    "options": [
+      "for",
+      "since",
+      "during"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "If it rains tomorrow, we _____ at home.",
+    "options": [
+      "stayed",
+      "will stay",
+      "staying"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "At eight last night, my brother _____ TV.",
+    "options": [
+      "was watching",
+      "watches",
+      "watch"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "There isn't _____ milk left in the fridge.",
+    "options": [
+      "many",
+      "a few",
+      "much"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "This exercise is _____ than the previous one.",
+    "options": [
+      "more easy",
+      "easier",
+      "easiest"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "You _____ wear a helmet when riding a motorcycle.",
+    "options": [
+      "must",
+      "must to",
+      "mustn't"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "By the time we arrived, the movie _____ already started.",
+    "options": [
+      "has",
+      "had",
+      "was"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "She enjoys _____ books in her free time.",
+    "options": [
+      "reading",
+      "to read",
+      "read"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "Have you ever _____ to another country?",
+    "options": [
+      "went",
+      "been",
+      "go"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "My sister _____ to work by bus every day.",
+    "options": [
+      "go",
+      "going",
+      "goes"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "Look! The children _____ in the garden.",
+    "options": [
+      "are playing",
+      "plays",
+      "is playing"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "We _____ pizza for dinner last night.",
+    "options": [
+      "eat",
+      "ate",
+      "eaten"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "Daniel _____ like coffee.",
+    "options": [
+      "don't",
+      "isn't",
+      "doesn't"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "_____ your parents live near here?",
+    "options": [
+      "Do",
+      "Does",
+      "Are"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "Listen! Someone _____ at the door.",
+    "options": [
+      "knocks yesterday",
+      "is knocking",
+      "knock"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "My dad usually _____ dinner on Sundays.",
+    "options": [
+      "cooking",
+      "cook",
+      "cooks"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "I can't talk now. I _____ my homework.",
+    "options": [
+      "am doing",
+      "did yesterday",
+      "does"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "Sofia and Emma _____ best friends.",
+    "options": [
+      "is",
+      "are",
+      "am"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "We _____ have classes on Sundays.",
+    "options": [
+      "doesn't",
+      "aren't",
+      "don't"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "_____ you see the game last night?",
+    "options": [
+      "Did",
+      "Do",
+      "Have"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "They _____ to the beach last weekend.",
+    "options": [
+      "goed",
+      "went",
+      "gone"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "I _____ my keys yesterday, but I found them later.",
+    "options": [
+      "lose",
+      "losing",
+      "lost"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "She didn't _____ the question.",
+    "options": [
+      "understand",
+      "understood",
+      "understands"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "Where _____ you yesterday afternoon?",
+    "options": [
+      "was",
+      "were",
+      "are being"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "There _____ a lot of people at the concert last night.",
+    "options": [
+      "was",
+      "is",
+      "were"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "We _____ our grandparents two days ago.",
+    "options": [
+      "visited",
+      "have visited",
+      "visiting"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "Did he _____ you a message?",
+    "options": [
+      "sent",
+      "send",
+      "sends"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "I _____ tired after the long walk yesterday.",
+    "options": [
+      "were",
+      "am",
+      "was"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "My parents _____ a new car last year.",
+    "options": [
+      "bought",
+      "buy",
+      "have bought"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "While I was cooking, my sister _____ the dishes.",
+    "options": [
+      "washes",
+      "was washing",
+      "wash"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "I was walking home when it _____ to rain.",
+    "options": [
+      "start",
+      "starting",
+      "started"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "What _____ you doing when I called?",
+    "options": [
+      "were",
+      "was",
+      "did"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "They _____ sleeping when the alarm went off.",
+    "options": [
+      "was",
+      "were",
+      "did"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "While Tom _____, he fell off his bike.",
+    "options": [
+      "cycles",
+      "cycle",
+      "was cycling"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "When I was six, I _____ afraid of dogs.",
+    "options": [
+      "used to be",
+      "use to be",
+      "used to being"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "Did you _____ play outside after school?",
+    "options": [
+      "used to",
+      "use to",
+      "using to"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "She didn't _____ like vegetables when she was little.",
+    "options": [
+      "used to",
+      "uses to",
+      "use to"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "At this time yesterday, we _____ lunch.",
+    "options": [
+      "were having",
+      "have",
+      "are having"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "The teacher arrived while the students _____ loudly.",
+    "options": [
+      "was talking",
+      "were talking",
+      "talks"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "I have _____ finished my homework.",
+    "options": [
+      "yesterday",
+      "ago",
+      "already"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "She hasn't called me _____.",
+    "options": [
+      "yet",
+      "yesterday",
+      "last night"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "We have known each other _____ five years.",
+    "options": [
+      "since",
+      "for",
+      "ago"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "Have you _____ tried sushi?",
+    "options": [
+      "yesterday",
+      "ago",
+      "ever"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "He has never _____ a horse.",
+    "options": [
+      "ridden",
+      "rode",
+      "ride"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "They _____ just arrived at the station.",
+    "options": [
+      "has",
+      "have",
+      "are"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "My brother _____ his room yet.",
+    "options": [
+      "didn't cleaned",
+      "hasn't clean",
+      "hasn't cleaned"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "How long _____ you lived here?",
+    "options": [
+      "have",
+      "has",
+      "are"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "We _____ that museum in 2023.",
+    "options": [
+      "have visited",
+      "visited",
+      "visiting"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "She has _____ three emails so far today.",
+    "options": [
+      "wrote",
+      "write",
+      "written"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "I _____ studying for two hours, and I'm still not finished.",
+    "options": [
+      "have been",
+      "am been",
+      "have being"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "She has been _____ English all morning.",
+    "options": [
+      "study",
+      "studying",
+      "studied"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "How long has he been _____ for the bus?",
+    "options": [
+      "waited",
+      "wait",
+      "waiting"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "We have been working here _____ January.",
+    "options": [
+      "since",
+      "for",
+      "ago"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "They _____ been practicing for the show all week.",
+    "options": [
+      "has",
+      "have",
+      "are"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "By the time I got to the station, the train had already _____.",
+    "options": [
+      "leave",
+      "leaving",
+      "left"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "I couldn't buy lunch because I _____ left my wallet at home.",
+    "options": [
+      "had",
+      "have",
+      "was"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "Before that trip, she had never _____ on a plane.",
+    "options": [
+      "flew",
+      "flown",
+      "fly"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "When we arrived, our friends _____ already eaten dinner.",
+    "options": [
+      "have",
+      "were",
+      "had"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "He recognized the song because he had _____ it before.",
+    "options": [
+      "heard",
+      "hear",
+      "hearing"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "I think our team _____ win tomorrow.",
+    "options": [
+      "won",
+      "will",
+      "winning"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "Look at those dark clouds! It _____ rain.",
+    "options": [
+      "going to",
+      "go to",
+      "is going to"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "We _____ going to visit our cousins next weekend.",
+    "options": [
+      "are",
+      "is",
+      "am"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "She _____ going to study medicine next year.",
+    "options": [
+      "are",
+      "is",
+      "am"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "I promise I _____ tell anyone your secret.",
+    "options": [
+      "didn't",
+      "haven't",
+      "won't"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "If you study hard, you _____ the test.",
+    "options": [
+      "will pass",
+      "passed",
+      "passing"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "If he _____ late, he'll miss the bus.",
+    "options": [
+      "will get up",
+      "gets up",
+      "getting up"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "We'll go to the park if it _____ sunny tomorrow.",
+    "options": [
+      "will be",
+      "was",
+      "is"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "If I had more free time, I _____ learn Italian.",
+    "options": [
+      "would",
+      "will",
+      "can to"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "If she _____ taller, she could reach the shelf.",
+    "options": [
+      "is",
+      "were",
+      "will be"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "If we lived near the beach, we _____ swimming every day.",
+    "options": [
+      "will go",
+      "went",
+      "would go"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "What would you do if you _____ a wallet in the street?",
+    "options": [
+      "found",
+      "find",
+      "will find"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "If I _____ you, I would talk to the teacher.",
+    "options": [
+      "am",
+      "were",
+      "will be"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "You look tired. You _____ get some rest.",
+    "options": [
+      "should to",
+      "should getting",
+      "should"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "Students _____ run in the school hallways.",
+    "options": [
+      "mustn't",
+      "must to",
+      "don't must"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "_____ I borrow your pencil, please?",
+    "options": [
+      "Must to",
+      "Can",
+      "Do"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "My little brother can _____ very well.",
+    "options": [
+      "swims",
+      "swimming",
+      "swim"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "We don't _____ wear uniforms on Saturdays.",
+    "options": [
+      "have to",
+      "has to",
+      "had to"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "She _____ to finish the report before Friday.",
+    "options": [
+      "have",
+      "has",
+      "having"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "You should _____ more water during the day.",
+    "options": [
+      "drank",
+      "drinking",
+      "drink"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "How _____ apples do we need?",
+    "options": [
+      "many",
+      "much",
+      "any"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "How _____ money have you got?",
+    "options": [
+      "many",
+      "much",
+      "a few"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "There are _____ eggs in the fridge, so we can make breakfast.",
+    "options": [
+      "a little",
+      "much",
+      "a few"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "I need _____ sugar for this recipe.",
+    "options": [
+      "a little",
+      "a few",
+      "many"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "We haven't got _____ bread.",
+    "options": [
+      "many",
+      "any",
+      "a few"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "There is _____ orange on the table.",
+    "options": [
+      "a",
+      "some",
+      "an"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "These shoes are _____ than those ones.",
+    "options": [
+      "cheaper",
+      "cheapest",
+      "more cheap"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "This is the _____ building in our town.",
+    "options": [
+      "taller",
+      "tallest",
+      "most tall"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "My bag is _____ than yours.",
+    "options": [
+      "heavy",
+      "heaviest",
+      "heavier"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "Today is _____ than yesterday.",
+    "options": [
+      "hotter",
+      "hottest",
+      "more hot"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "This restaurant is _____ expensive than the café next door.",
+    "options": [
+      "most",
+      "more",
+      "much"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "That was the _____ movie I've ever seen.",
+    "options": [
+      "better",
+      "good",
+      "best"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "I decided _____ home because I was tired.",
+    "options": [
+      "to go",
+      "going",
+      "went"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "Would you like _____ some tea?",
+    "options": [
+      "drinking",
+      "to drink",
+      "drank"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "Please stop _____. The baby is sleeping.",
+    "options": [
+      "shout",
+      "to shouting",
+      "shouting"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "She is interested in _____ a new language.",
+    "options": [
+      "learning",
+      "learn",
+      "to learn"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "This is the boy _____ won the competition.",
+    "options": [
+      "which",
+      "who",
+      "where"
+    ],
+    "correct": 1
+  },
+  {
+    "sentence": "The cake _____ made by my grandmother yesterday.",
+    "options": [
+      "is",
+      "were",
+      "was"
+    ],
+    "correct": 2
+  },
+  {
+    "sentence": "English _____ spoken in many countries.",
+    "options": [
+      "is",
+      "are",
+      "be"
+    ],
+    "correct": 0
+  },
+  {
+    "sentence": "These letters _____ delivered yesterday morning.",
+    "options": [
+      "was",
+      "were",
+      "are"
+    ],
+    "correct": 1
+  }
+];
+const $=id=>document.getElementById(id), canvas=$('game'),ctx=canvas.getContext('2d'),W=960,H=540;
+const images={};['background','balloon-1','balloon-2','balloon-3','life','shooter-1','shooter-2','shooter-3','crosshair'].forEach(n=>{let im=new Image();im.src=n+'.png';images[n]=im});
+const sounds={};['bg-music','whoosh','shooting','you-win','wrong'].forEach(n=>{let a=new Audio(n+'.mp3');a.preload='auto';sounds[n]=a});sounds['bg-music'].loop=true;sounds['bg-music'].volume=.15;sounds.whoosh.volume=.22;
+let muted=false,selected=0,state='menu',score=0,lives=3,deck=[],answerSlots=[],qIndex=0,balloons=[],aim={x:480,y:230},keys=new Set(),transition=0,last=0,clock=0,lastShot=-9,lastWhoosh=-9,flash=0,feedback='',feedbackTime=0,drag=null;
+const colors=['#9455e7','#57bd4b','#ef515b'];
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+// Spread correct answers evenly across the three balloon images.
+// Shuffle small balanced groups and prevent the same balloon winning three times in a row.
+function makeAnswerSlots(count){
+ const slots=[];
+ while(slots.length<count){
+  let group=shuffle([0,1,2]);
+  if(slots.length>=2&&slots.at(-1)===slots.at(-2)&&group[0]===slots.at(-1)){
+   [group[0],group[1]]=[group[1],group[0]];
+  }
+  slots.push(...group.slice(0,count-slots.length));
+ }
+ return slots;
+}
+function play(n){if(muted)return;const a=sounds[n];try{a.currentTime=0;const p=a.play();if(p)p.catch(()=>{})}catch(e){}}
+function music(){if(!muted&&state==='playing'){const p=sounds['bg-music'].play();if(p)p.catch(()=>{})}else sounds['bg-music'].pause()}
+function loaded(im){return im&&im.complete&&im.naturalWidth>0}
+function image(n,x,y,w,h){const im=images[n];if(!loaded(im))return false;const s=Math.min(w/im.naturalWidth,h/im.naturalHeight);ctx.drawImage(im,x+(w-im.naturalWidth*s)/2,y+(h-im.naturalHeight*s)/2,im.naturalWidth*s,im.naturalHeight*s);return true}
+function round(x,y,w,h,r,fill){ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
+function text(t,x,y,size,color='white'){ctx.fillStyle=color;ctx.font='bold '+size+'px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,x,y)}
+function nextQuestion(){
+ transition=0;const q=deck[qIndex];
+ const wrong=shuffle(q.options.map((label,i)=>({label,correct:i===q.correct})).filter(b=>!b.correct));
+ const correctSlot=answerSlots[qIndex];
+ const assigned=[0,1,2].map(i=>i===correctSlot?{label:q.options[q.correct],correct:true}:wrong.pop());
+ balloons=assigned.map((b,i)=>({...b,x:65+i*285,y:40+Math.random()*130,vx:(Math.random()>.5?1:-1)*(24+Math.random()*16),vy:(Math.random()>.5?1:-1)*(12+Math.random()*15),asset:i,alive:true,pop:0}));
+ $('status').textContent='Question '+(qIndex+1)+' of '+deck.length+'. '+q.sentence;
+}
+function start(){keys.clear();$('welcome').hidden=true;$('ending').hidden=true;$('paused').hidden=true;score=0;lives=3;qIndex=0;clock=0;lastShot=-9;lastWhoosh=-9;feedback='';feedbackTime=0;flash=0;aim={x:480,y:230};deck=shuffle(QUESTIONS);answerSlots=makeAnswerSlots(deck.length);state='playing';$('pause').disabled=false;$('pause').textContent='Pause';nextQuestion();music()}
+function finish(won){state='ended';keys.clear();music();$('pause').disabled=true;$('ending').hidden=false;$('endTitle').textContent=won?'Well done!':'Game over';$('endText').textContent=(won?'You completed all '+deck.length+' sentences! ':'Try again and aim for the correct answers. ')+'Your score: '+score+' points.';$('status').textContent=$('endText').textContent}
+function pause(){if(state!=='playing')return;state='paused';keys.clear();$('paused').hidden=false;$('pause').textContent='Resume';music()}
+function resume(){if(state!=='paused')return;state='playing';$('paused').hidden=true;$('pause').textContent='Pause';music()}
+function fire(){if(state!=='playing'||transition>0||clock-lastShot<.35)return;lastShot=clock;flash=.1;play('shooting');const b=balloons.slice().reverse().find(b=>b.alive&&hit(b,aim.x,aim.y));if(!b)return;b.alive=false;b.pop=.35;if(b.correct){score+=100;feedback='+100 • Correct!';feedbackTime=.9;transition=1;play('you-win');$('status').textContent='Correct! '+score+' points.'}else{lives--;feedback='Wrong answer • −1 life';feedbackTime=.9;play('wrong');$('status').textContent='Wrong answer. '+lives+' lives left.';if(lives===0)transition=1}}
+// Hit testing uses the actual nontransparent balloon image pixels, including basket / character.
+const masks={};function hit(b,x,y){const bx=x-b.x,by=y-b.y;if(bx<0||by<0||bx>150||by>170)return false;const im=images['balloon-'+(b.asset+1)];if(!loaded(im))return ((bx-75)/62)**2+((by-63)/60)**2<=1||(bx>=48&&bx<=102&&by>=110&&by<=165);try{if(!masks[b.asset]){const c=document.createElement('canvas');c.width=150;c.height=170;const cctx=c.getContext('2d');const s=Math.min(150/im.naturalWidth,170/im.naturalHeight);cctx.drawImage(im,(150-im.naturalWidth*s)/2,(170-im.naturalHeight*s)/2,im.naturalWidth*s,im.naturalHeight*s);masks[b.asset]=cctx.getImageData(0,0,150,170).data}return masks[b.asset][(Math.min(169,Math.floor(by))*150+Math.min(149,Math.floor(bx)))*4+3]>20}catch(e){return true}}
+function drawBalloon(b){ctx.save();if(!b.alive){if(b.pop<=0){ctx.restore();return}ctx.globalAlpha=b.pop/.35;ctx.translate(b.x+75,b.y+85);const s=1+(.35-b.pop);ctx.scale(s,s);ctx.translate(-b.x-75,-b.y-85)}if(!image('balloon-'+(b.asset+1),b.x,b.y,150,170)){ctx.fillStyle=colors[b.asset];ctx.beginPath();ctx.ellipse(b.x+75,b.y+63,62,60,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff9';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(b.x+75,b.y+63,25,60,0,0,Math.PI*2);ctx.moveTo(b.x+28,b.y+99);ctx.lineTo(b.x+53,b.y+142);ctx.moveTo(b.x+122,b.y+99);ctx.lineTo(b.x+97,b.y+142);ctx.stroke();round(b.x+48,b.y+137,54,28,7,'#784728')}ctx.font='bold 23px Arial';const width=Math.max(105,ctx.measureText(b.label).width+26);round(b.x+75-width/2,b.y+30,width,37,18,'#080e19');text(b.label,b.x+75,b.y+49,23);ctx.restore()}
+function wrapSentence(t){let size=27;ctx.font='bold '+size+'px Arial';while(ctx.measureText(t).width>820&&size>19){size--;ctx.font='bold '+size+'px Arial'}const words=t.split(' '),lines=[''];for(const word of words){const i=lines.length-1,trial=lines[i]+(lines[i]?' ':'')+word;if(ctx.measureText(trial).width>820&&lines[i])lines.push(word);else lines[i]=trial}lines.forEach((l,i)=>text(l,480,lines.length===1?407:393+i*27,size))}
+function draw(){ctx.clearRect(0,0,W,H);if(!image('background',0,0,W,H)){ctx.fillStyle='#39a6f5';ctx.fillRect(0,0,W,H);ctx.fillStyle='#7ec93d';ctx.fillRect(0,435,W,45);ctx.fillStyle='#98702a';ctx.fillRect(0,480,W,60)}balloons.forEach(drawBalloon);if(state!=='menu'){round(40,365,880,85,30,'#92080a');wrapSentence(deck[qIndex].sentence);text((qIndex+1)+' / '+deck.length,480,22,17);if(!image('shooter-'+(selected+1),aim.x-30,450,60,90)){round(aim.x-14,477,28,51,12,['#244a88','#713f82','#285c45'][selected]);ctx.fillStyle='#d69d74';ctx.beginPath();ctx.arc(aim.x,481,13,0,Math.PI*2);ctx.fill();ctx.fillStyle='#222';ctx.fillRect(aim.x-3,448,6,32)}if(flash>0){ctx.strokeStyle='#fff49a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(aim.x,450);ctx.lineTo(aim.x,aim.y);ctx.stroke()}round(20,477,165,50,10,'#111c30cc');for(let i=0;i<lives;i++)if(!image('life',37+i*46,484,30,36))text('♥',52+i*46,502,31,'#ff646c');round(755,470,185,58,12,'#080e19');text('SCORE',847,484,17,'#ffe951');text(String(score).padStart(6,'0'),847,510,26);if(feedbackTime>0){round(310,323,340,34,15,'#10243bd9');text(feedback,480,340,20)}if(!image('crosshair',aim.x-27,aim.y-27,54,54)){ctx.strokeStyle='white';ctx.lineWidth=2;ctx.beginPath();ctx.arc(aim.x,aim.y,22,0,Math.PI*2);ctx.arc(aim.x,aim.y,9,0,Math.PI*2);ctx.moveTo(aim.x-30,aim.y);ctx.lineTo(aim.x+30,aim.y);ctx.moveTo(aim.x,aim.y-30);ctx.lineTo(aim.x,aim.y+30);ctx.stroke()}}}
+function movementSound(){if(clock-lastWhoosh>.22){lastWhoosh=clock;play('whoosh')}}
+function tick(ms){const dt=Math.min((ms-last)/1000||0,.04);last=ms;if(state==='playing'){clock+=dt;flash=Math.max(0,flash-dt);feedbackTime=Math.max(0,feedbackTime-dt);for(const b of balloons){b.pop=Math.max(0,b.pop-dt);if(b.alive&&transition===0){b.x+=b.vx*dt;b.y+=b.vy*dt;if(b.x<15){b.x=15;b.vx=Math.abs(b.vx)}if(b.x>795){b.x=795;b.vx=-Math.abs(b.vx)}if(b.y<36){b.y=36;b.vy=Math.abs(b.vy)}if(b.y>182){b.y=182;b.vy=-Math.abs(b.vy)}}}let dx=Number(keys.has('ArrowRight'))-Number(keys.has('ArrowLeft')),dy=Number(keys.has('ArrowDown'))-Number(keys.has('ArrowUp'));if(dx||dy){let len=Math.hypot(dx,dy);aim.x=Math.max(28,Math.min(932,aim.x+dx/len*300*dt));aim.y=Math.max(28,Math.min(512,aim.y+dy/len*300*dt));movementSound()}if(transition>0){transition-=dt;if(transition<=0){if(lives===0)finish(false);else if(++qIndex===deck.length){qIndex=deck.length-1;finish(true)}else nextQuestion()}}}draw();requestAnimationFrame(tick)}
+document.querySelectorAll('.pick').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.shooter);document.querySelectorAll('.pick').forEach(p=>p.setAttribute('aria-pressed',String(p===b)))});
+$('start').onclick=start;$('again').onclick=start;$('choose').onclick=()=>{state='menu';balloons=[];$('ending').hidden=true;$('welcome').hidden=false;$('status').textContent='Choose a shooter to begin.'};$('fire').onclick=fire;$('pause').onclick=()=>state==='paused'?resume():pause();$('resume').onclick=resume;$('mute').onclick=()=>{muted=!muted;Object.values(sounds).forEach(a=>{a.muted=muted});$('mute').textContent='Sound: '+(muted?'Off':'On');$('mute').setAttribute('aria-pressed',String(muted));music()};
+window.addEventListener('keydown',e=>{if(state==='playing'&&(e.key.startsWith('Arrow')||e.code==='Space')){e.preventDefault();if(e.code==='Space'){if(!e.repeat)fire()}else keys.add(e.key)}if(e.key==='Escape'){if(state==='playing')pause();else if(state==='paused')resume()}});window.addEventListener('keyup',e=>keys.delete(e.key));window.addEventListener('blur',pause);document.addEventListener('visibilitychange',()=>{if(document.hidden)pause()});
+document.querySelectorAll('[data-dir]').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();if(state==='playing'){b.setPointerCapture(e.pointerId);keys.add(b.dataset.dir)}});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,()=>keys.delete(b.dataset.dir)))});
+function point(e){const r=canvas.getBoundingClientRect();aim.x=Math.max(28,Math.min(932,(e.clientX-r.left)*W/r.width));aim.y=Math.max(28,Math.min(512,(e.clientY-r.top)*H/r.height));movementSound()}
+canvas.addEventListener('pointerdown',e=>{if(state!=='playing')return;e.preventDefault();drag=e.pointerId;canvas.setPointerCapture(drag);point(e)});canvas.addEventListener('pointermove',e=>{if(state==='playing'&&e.pointerId===drag)point(e)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>canvas.addEventListener(ev,()=>{drag=null}));
+// Recalculate when browser size, device orientation or mobile browser bars change.
+function fitGame(){
+ const shell=document.querySelector('.shell'),top=document.querySelector('.top'),controls=document.querySelector('.controls'),stage=document.querySelector('.stage');
+ const style=getComputedStyle(shell),gap=parseFloat(style.rowGap)||0;
+ const touchVisible=getComputedStyle(controls).display!=='none';
+ const availableWidth=shell.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight);
+ const availableHeight=shell.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-top.getBoundingClientRect().height-(touchVisible?controls.getBoundingClientRect().height:0)-gap*(touchVisible?2:1);
+ const width=Math.max(1,Math.min(availableWidth,availableHeight*16/9));
+ stage.style.width=width+'px';stage.style.height=width*9/16+'px';
+}
+window.addEventListener('resize',fitGame);
+if(window.visualViewport)window.visualViewport.addEventListener('resize',fitGame);
+const inputMedia=window.matchMedia('(hover:none) and (pointer:coarse)');
+inputMedia.addEventListener('change',fitGame);
+fitGame();
+requestAnimationFrame(tick);
+</script></body></html>
